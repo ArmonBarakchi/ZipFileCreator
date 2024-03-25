@@ -1,7 +1,7 @@
 //
 //  ScanFolder.hpp
 //
-//  Created by rick gessner on 2/13/24.
+//  Created on 2/13/24.
 //
 
 #ifndef ScanFolder_h
@@ -21,6 +21,18 @@ namespace ECE141 {
     - bool          is_regular_file() const;
     - bool          is_directory() const;
     - uintmax_t     file_size() const;
+*/
+
+/* --------- Example use: -------------
+
+ECE141::ScanFolder theScan("/tmp");
+theScan.each([](const fs::directory_entry &anEntry) {
+  if(anEntry.is_regular_file()) {
+    std::cout << anEntry.path() << "\n";
+  }
+  return true;
+});
+
 */
 
   using ScanObserver = std::function<bool(const fs::directory_entry&)>;
@@ -44,17 +56,7 @@ namespace ECE141 {
 
 }
 
-/* --------- Example use: -------------
- 
-ECE141::ScanFolder theScan("/tmp");
-theScan.each([](const fs::directory_entry &anEntry) {
-  if(anEntry.is_regular_file()) {
-    std::cout << anEntry.path() << "\n";
-  }
-  return true;
-});
- 
-*/
+
 
 
 

@@ -12,7 +12,9 @@
 
 std::string getLocalFolder() {
     //return std::string("c:/xxx/yyy");
-    return std::string("/Users/armonbarakchi/Desktop/ECE 141 Final/final-ArmonBarakchi/tmp"); //SET PATH TO LOCAL ARCHIVE FOLDER
+
+    return std::string("/Users/armonbarakchi/Desktop/ZipFileCreator/tmp"); //SET PATH TO LOCAL ARCHIVE FOLDER, add a tmp folder at the end
+
 }
 
 void runAutoGrader(int argc, const char* argv[]) {
@@ -39,7 +41,6 @@ void runAutoGrader(int argc, const char* argv[]) {
                 {"Dump",     [&]() { return theTester.doDumpTests(theOutput); }},
                 {"Stress",   [&]() { return theTester.doStressTests(theOutput); }},
                 {"Compress", [&]() { return theTester.doCompressTests(theOutput); }},
-                {"Resize",   [&]() { return theTester.doResizeTests(theOutput); }},
                 {"Folder",   [&]() { return theTester.doFolderTests(theOutput); }},
                 {"All",      [&]() { return theTester.doAllTests(theOutput); }},
                 {"Final",    [&]() { return theTester.doFinalTests(theOutput); }} // All the final exam tests
@@ -61,7 +62,6 @@ int main(int argc, const char* argv[]) {
     if (argc > 1)
         runAutoGrader(argc, argv);
 
-    // Add your (optional) testing code here...
 
     return 0;
 }

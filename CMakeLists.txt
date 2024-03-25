@@ -15,18 +15,18 @@ if(WIN32)
     #        message(FATAL_ERROR "ZLIB library not found")
     #    endif()
 else()
-    # Find Zlib package. This will work out of the box on Linux and macOS, where Zlib is usually pre-installed
+    # Find Zlib package. I use macOS, where Zlib is pre-installed. This also works for linux
     find_package(ZLIB)
 endif()
+
+
 
 # Define your executable
 add_executable(${PROJECT_NAME}
         Archive.cpp
         Archive.hpp
         main.cpp
-        Testable.hpp
         Testing.hpp
-        Timer.hpp
         Tracker.hpp
         Chunker.h)
 

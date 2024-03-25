@@ -20,7 +20,6 @@ namespace ECE141 {
         aBlockSize = _aBlockSize;
     }
 
-
     Archive::Archive(const std::string &aPath, OpenFile aMode) {
         if (std::string::npos == aPath.find(".arc")) {
             aFullPath = aPath + ".arc";
@@ -31,7 +30,6 @@ namespace ECE141 {
 
 
     }
-
 
     Archive::~Archive() {
         ArchiveFile.flush();
@@ -50,7 +48,6 @@ namespace ECE141 {
         return *this;
     }
 
-
     ArchiveStatus<std::shared_ptr<Archive>> Archive::createArchive(const std::string &anArchiveName, uint32_t aBlockSize) {
         return ArchiveStatus{std::shared_ptr<Archive>(new Archive(anArchiveName, CreateFile{}, aBlockSize))};
     }
@@ -58,8 +55,6 @@ namespace ECE141 {
     ArchiveStatus<std::shared_ptr<Archive>> Archive::openArchive(const std::string &anArchiveName) {
         return ArchiveStatus{std::shared_ptr<Archive>(new Archive(anArchiveName, OpenFile{}))};
     }
-
-
 
     ArchiveStatus<bool> Archive::add(const std::string &aFilename, IDataProcessor *aProcessor) {
         //initialize the input
@@ -73,9 +68,6 @@ namespace ECE141 {
         //initialize a potential processed input
         std::fstream theProcessedInput;
         theProcessedInput.open(aFullPath + "output.txt.process", CreateFile{});
-
-
-
 
         //process file if there is a processor
         uint8_t processorPosition;
@@ -122,7 +114,6 @@ namespace ECE141 {
         return ArchiveStatus<bool>(true);
     }
 
-
     ArchiveStatus<bool> Archive::extract(const std::string &aFilename, const std::string &aFullPath) {
 
         //initialize an out.txt filestream
@@ -130,21 +121,20 @@ namespace ECE141 {
         outputFile.open(aFullPath, CreateFile{});
         outputFile.seekp(0, std::ios::beg);
 
-
         //initialize loop variables
         int counter{0};
         std::vector<uint8_t> inputVector(kBlockSize, 0);
         size_t dataSize = kBlockSize-sizeof(MetaData);
 
         //iterate through blocks and add to out.txt
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             std::string tempName(aBlock.Meta.FileName);
             if(size_t apos = tempName.find_last_of('/')) {
                 tempName = tempName.substr(apos + 1);
             }
             if (tempName == aFilename) {
                 if (true == aBlock.Meta.processed) {
-                    if(0 != aBlock.Meta.nextBlock) { //how come inputVector and counter are not recognized in this scope
+                    if(0 != aBlock.Meta.nextBlock) {
                         counter++;
                         inputVector.resize(counter*kBlockSize);
                         std::memcpy(inputVector.data() + (counter-1)*dataSize, aBlock.data, dataSize);
@@ -177,8 +167,11 @@ namespace ECE141 {
 
     ArchiveStatus<bool> Archive::remove(const std::string &aFilename) {
         int counter{0};
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             std::string tempName(aBlock.Meta.FileName);
+            if(size_t apos = tempName.find_last_of('/')) {
+                tempName = tempName.substr(apos + 1);
+            }
             if (aFilename == tempName) {
                 counter++;
                 aBlock.Meta.occupied = 0;
@@ -196,27 +189,27 @@ namespace ECE141 {
         }
     }
 
-
     ArchiveStatus<size_t> Archive::list(std::ostream &aStream) {
-        std::string header = "###  name         size       date added \n------------------------------------------------\n";
+        std::string header = "###  name         size        \n------------------------------------------------\n";
+        //std::cout<<header<<std::endl;
         aStream << header;
         std::string FileNames = " ";
         size_t result{0};
 
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             std::string tempName(aBlock.Meta.FileName);
             if(size_t apos = tempName.find_last_of('/')) {
                 tempName = tempName.substr(apos + 1);
             }
             std::string FileElement;
             if (std::string::npos == FileNames.find(" " + tempName + " ") &&
-                1 == aBlock.Meta.occupied) { //this doesn't work because what about
+                1 == aBlock.Meta.occupied) {
                 FileNames += " " + tempName + " ";
                 result++;
                 std::string tempFileNumber = std::to_string(result);
                 std::string tempDataSize = std::to_string(aBlock.Meta.fileSize);
                 FileElement = tempFileNumber + ".   " + tempName + "    " + tempDataSize + "\n";
-                std::cout << FileElement<<std::endl;
+                //std::cout << FileElement<<std::endl;
                 aStream << FileElement;
             }
             return true;
@@ -230,7 +223,7 @@ namespace ECE141 {
         std::string header = "###  status   name\n-----------------------\n";
         aStream << header;
         std::string FileElement;
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             std::string BlockNumber = std::to_string(aBlock.Meta.currentBlock);
             std::string status;
             std::string fileName;
@@ -246,16 +239,15 @@ namespace ECE141 {
         });
 
         notifyObservers(ActionType::dumped, "", true);
-        return ArchiveStatus<size_t>(result); //gets number of blocks
+        return ArchiveStatus<size_t>(result);
 
     }
-
 
     ArchiveStatus<size_t> Archive::compact() {
         size_t result{countBlocks()};
         std::fstream tempFile(aFullPath + ".tmp", CreateFile{});
         tempFile.seekp(0, std::ios::beg);
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             if (0 == aBlock.Meta.occupied) {
                 result--;
             } else {
@@ -274,19 +266,12 @@ namespace ECE141 {
         return ArchiveStatus<size_t>(result);
     }
 
-    ArchiveStatus<std::string> Archive::getFullPath() const {
-        return ArchiveStatus<std::string>(aFullPath);
-    }
-
-    ArchiveStatus<bool> Archive::resize(size_t _aBlockSize) {
-        aBlockSize = _aBlockSize;
-        return ArchiveStatus<bool>(true);
-    }
     ArchiveStatus<bool> Archive::merge(const std::string &anArchiveName){
         auto newArchive = Archive::openArchive(anArchiveName);
         newArchive.getValue()->addArchive(*this);
         return ArchiveStatus<bool>(true);
-    } // New!
+    }
+
     ArchiveStatus<bool> Archive:: addFolder(const std::string &aFolder){
         ECE141::ScanFolder theScan(aFolder);
         theScan.each([this](const fs::directory_entry &anEntry) {
@@ -299,11 +284,12 @@ namespace ECE141 {
 
 
         return ArchiveStatus<bool>(true);
-    } // New!
+    }
+
     ArchiveStatus<bool> Archive:: extractFolder(const std::string &aFolderName, const std::string &anExtractPath)
     {
         std::string FileNames = " ";
-        each([&](Block &aBlock, size_t aPos) { //naive approach...
+        each([&](Block &aBlock, size_t aPos) {
             std::string tempName(aBlock.Meta.FileName);
             if (std::string::npos == FileNames.find(" " + tempName + " ") &&
                 1 == aBlock.Meta.occupied && std::string::npos != tempName.find(aFolderName)) {
@@ -369,9 +355,6 @@ namespace ECE141 {
         return ArchiveStatus<bool>(true);  //lacks error handling
     }
 
-
-
-
     //processes inputFile and returns a processor position
     uint8_t Archive::processAnInput(IDataProcessor *aProcessor, std::fstream &anInput, std::fstream &anOutput, const std::string &aFilename) {
         uint8_t processorPosition;
@@ -427,51 +410,49 @@ namespace ECE141 {
 
     //--------------Compression-------------------------
 
-//    std::vector<uint8_t> ECE141::Compression::process(const std::vector<uint8_t> &input) {
-//
-//        uLong compressedSize = compressBound(input.size());
-//        std::vector<uint8_t> compressedData(compressedSize);
-//
-//        int result = compress(compressedData.data(), &compressedSize, input.data(), input.size());
-//
-//        if (result != Z_OK) {
-//            return std::vector<uint8_t>();
-//        } else {
-//            compressedData.resize(compressedSize);
-//            return compressedData;
-//        }
-//
-//    }
-//
-//    size_t const WorstCaseUncompressionSize{8};
-//    std::vector<uint8_t> ECE141::Compression::reverseProcess(const std::vector<uint8_t> &input) {
-//
-//        // Determine the maximum size of the uncompressed data based on the compressed data size
-//        size_t uncompressedSize = static_cast<size_t>(input.size()) * WorstCaseUncompressionSize;
-//
-//        //find a way to figure out size of uncompressedData
-//        std::vector<uint8_t> uncompressedData(uncompressedSize, 0 );
-//
-//        // Decompress the compressed data
-//        int result = uncompress(uncompressedData.data(), &uncompressedSize , input.data(), input.size());
-//
-//        //value of uncompressedSize gets changed by this function to the actual uncompressed size
-//        for (unsigned long i = 0; i < uncompressedData.size(); ++i) {
-//            std::cout << uncompressedData[i];
-//
-//        }
-//        std::cout << std::endl;
-//        // Check the result of decompression
-//        if (result != Z_OK) {
-//            // Handle error (e.g., return an empty vector)
-//            return std::vector<uint8_t>();
-//        } else {
-//            // Resize the uncompressed data vector to the actual size of the decompressed data
-//            uncompressedData.resize(uncompressedSize);
-//            //for some reason the uncompressedSize here is 1024??
-//            return uncompressedData;
-//        }
-//    }
+    std::vector<uint8_t> ECE141::Compression::process(const std::vector<uint8_t> &input) {
+
+        uLong compressedSize = compressBound(input.size());
+        std::vector<uint8_t> compressedData(compressedSize);
+
+        int result = compress(compressedData.data(), &compressedSize, input.data(), input.size());
+
+        if (result != Z_OK) {
+            return std::vector<uint8_t>();
+        } else {
+            compressedData.resize(compressedSize);
+            return compressedData;
+        }
+
+    }
+
+    size_t const WorstCaseUncompressionSize{8};
+    std::vector<uint8_t> ECE141::Compression::reverseProcess(const std::vector<uint8_t> &input) {
+
+        // Determine the maximum size of the uncompressed data based on the compressed data size
+        size_t uncompressedSize = static_cast<size_t>(input.size()) * WorstCaseUncompressionSize;
+
+        std::vector<uint8_t> uncompressedData(uncompressedSize, 0 );
+
+        // Decompress the compressed data
+        int result = uncompress(uncompressedData.data(), &uncompressedSize , input.data(), input.size());
+
+        for (unsigned long i = 0; i < uncompressedData.size(); ++i) {
+            std::cout << uncompressedData[i];
+
+        }
+        std::cout << std::endl;
+        // Check the result of decompression
+        if (result != Z_OK) {
+            // Handle error (e.g., return an empty vector)
+            return std::vector<uint8_t>();
+        } else {
+            // Resize the uncompressed data vector to the actual size of the decompressed data
+            uncompressedData.resize(uncompressedSize);
+
+            return uncompressedData;
+        }
+    }
 
 
 

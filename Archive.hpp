@@ -30,14 +30,15 @@
 namespace ECE141 {
 
     enum class ActionType {added, extracted, removed, listed, dumped, compacted};
-    enum class AccessMode {AsNew, AsExisting}; //you can change values (but not names) of this enum
     namespace fs = std::filesystem;
     class Archive; //forward declaration
 
     struct ArchiveObserver {
         void virtual operator()(ActionType anAction,
                         const std::string &aName, bool status) =0;
-    };
+    }; //used to create observers if needed in the future
+
+    //--------------------------------------------
 
     class IDataProcessor {
     public:
@@ -46,19 +47,15 @@ namespace ECE141 {
         virtual ~IDataProcessor(){};
     };
 
-    /** This is new child class of data processor, use it to compress the if add asks for it*/
+
     class Compression : public IDataProcessor {
     public:
-        std::vector<uint8_t> process(const std::vector<uint8_t>& input) override {
-            // write the compress process here
-        }
-
-        std::vector<uint8_t> reverseProcess(const std::vector<uint8_t>& input) override {
-            // write the compress process here
-            return input;
-        }
+        std::vector<uint8_t> process(const std::vector<uint8_t>& input) override;
+        std::vector<uint8_t> reverseProcess(const std::vector<uint8_t>& input) override;
         ~Compression() override = default;
     };
+
+    //--------------------------------------------
 
     enum class ArchiveErrors {
         noError=0,
@@ -106,11 +103,7 @@ namespace ECE141 {
         ArchiveErrors error;
     };
 
-
-    //--------------------------------------------------------------------------------
-    //You'll need to define your own classes for Blocks, and other useful types...
-    //--------------------------------------------------------------------------------
-
+    //--------------------------------------------
 
     struct CreateFile { //auto-generate proper mode flags to create
         operator std::ios_base::openmode() {
@@ -124,10 +117,12 @@ namespace ECE141 {
         }
     };
 
+    //------------------------------------------
+
     class Archive {
     public:
         using IntVector = std::vector<size_t>;
-        ~Archive();  //
+        ~Archive();
 
         static    ArchiveStatus<std::shared_ptr<Archive>> createArchive(const std::string &anArchiveName, uint32_t aBlockSize=1024);
         static    ArchiveStatus<std::shared_ptr<Archive>> openArchive(const std::string &anArchiveName);
@@ -138,9 +133,9 @@ namespace ECE141 {
         ArchiveStatus<bool>      extract(const std::string &aFilename, const std::string &aFullPath);
         ArchiveStatus<bool>      remove(const std::string &aFilename);
 
-        ArchiveStatus<bool>      resize(size_t aBlockSize); // New!
-        ArchiveStatus<bool>      merge(const std::string &anArchiveName); // New!
-        ArchiveStatus<bool>      addFolder(const std::string &aFolder); // New!
+
+        ArchiveStatus<bool>      merge(const std::string &anArchiveName);
+        ArchiveStatus<bool>      addFolder(const std::string &aFolder);
         ArchiveStatus<bool>      extractFolder(const std::string &aFolderName, const std::string &anExtractPath); // New!
 
         ArchiveStatus<size_t>    list(std::ostream &aStream);
@@ -153,7 +148,6 @@ namespace ECE141 {
         //---------Data Members and Constructors--------
 
         static std::vector<std::shared_ptr<IDataProcessor>> processors;
-        //std::vector<std::shared_ptr<IDataProcessor>> processors;
         std::vector<std::shared_ptr<ArchiveObserver>> observers;
         Archive(const std::string &aPath, CreateFile aCreate, uint32_t aBlockSize);
         Archive(const std::string &aPath, OpenFile anOpen);
@@ -172,7 +166,6 @@ namespace ECE141 {
         uint8_t processAnInput(IDataProcessor *aProcessor, std::fstream &anInput, std::fstream &anOutput, const std::string &aFilename);
         void addArchive(Archive &anOriginalArchive);
         std::string findFolderName(const std::string &aFilepath);
-        // STUDENT: add anything else you want here, (e.g. blocks?)...
 
     };
 

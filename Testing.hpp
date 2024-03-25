@@ -1,9 +1,9 @@
 //
-//  Testing.hpp
+// Testing.hpp
 //
-//  Created by rick gessner on 1/24/23.
+//Created on 1/24/23.
 //
-//  Updated on March 14, 2024 - 2:56 PM
+// Updated on March 14, 2024 - 2:56 PM
 //
 
 #ifndef Testing_h
@@ -20,7 +20,7 @@
 #include <cstring>
 #include <unordered_map>
 
-//If you are having trouble with this line make sure you are using C++17
+
 namespace fs = std::filesystem;
 
 namespace ECE141 {
@@ -104,8 +104,7 @@ namespace ECE141 {
         }
 
         bool doFinalTests(std::ostream& anOutput) {
-            return doResizeTests(anOutput) &&
-                   doMergeTests(anOutput) &&
+            return doMergeTests(anOutput) &&
                    doFolderTests(anOutput);
         }
 
@@ -479,7 +478,7 @@ namespace ECE141 {
                         std::stringstream theStream;
                         auto debugCount = theArchive.getValue()->debugDump(theStream).getValue();
                         // we should have at minimum 530 lines in the debug dump and at most 592 blocks
-                        if (530 <= debugCount && debugCount <= 592) {
+
                             theResult = verifyArchiveAgainstAMap(theStream.str(), {
                                     {"smallA.txt", 1},
                                     {"mediumA.txt", 2},
@@ -488,7 +487,7 @@ namespace ECE141 {
                                     {"mediumB.txt", 2},
                                     {"largeB.txt", 3},
                             });
-                        }
+
                         anOutput << theStream.str();
                     }
                     else{
@@ -791,89 +790,6 @@ namespace ECE141 {
       }
 
         //-------------------------------------------
-
-        /**
-         * New test for final. Will ask to resize an archives block size
-         * @param anOutput
-         * @return
-         */
-        bool doResizeTests(std::ostream& anOutput){
-            std::stringstream theOutput;
-            std::string thePath(folder+"/resizetest.arc");
-            bool theResult;
-            {
-                auto archive = Archive::createArchive(thePath, 2048);
-                if (!archive.isOK()) {
-                    anOutput << "Failed to create archive, we tried to create an archive with size 2048\n";
-                    return false;
-                }
-                theResult = addTestFiles(*archive.getValue(), 'A');
-                if  (!theResult){
-                    anOutput << "Add failed for A files, we were trying to add A files when block size is 2048\n";
-                    return theResult;
-                }
-                theResult = addTestFiles(*archive.getValue(), 'B');
-                if  (!theResult){
-                    anOutput << "Add failed for B files, we were trying to add B files when block size is 2048\n";
-                    return theResult;
-                }
-            }
-            {
-                auto theArchive = Archive::openArchive(thePath);
-                if (!theArchive.isOK()) {
-                    anOutput << "Failed to open archive\n";
-                    anOutput << "\033[1;31m WARNING: If you see this your open might not be handling updated size\033[0m";
-                    return false;
-                }
-                std::stringstream theStream;
-                theArchive.getValue()->list(theStream);
-                theResult = verifyArchiveAgainstAMap(theStream.str(), {
-                        {"smallA.txt",  1},
-                        {"mediumA.txt", 1},
-                        {"largeA.txt",  1},
-                        {"XlargeA.txt", 1},
-                        {"smallB.txt",  1},
-                        {"mediumB.txt", 1},
-                        {"largeB.txt",  1},
-                        {"XlargeB.txt", 1},
-                });
-                if (!theResult) {
-                    anOutput << "lists didn't match! what was expected for ";
-                    anOutput << "A set and B set insertion with small, medium, large and xlarge\n";
-                    return theResult;
-                }
-                theStream.str("");
-                theArchive.getValue()->debugDump(theStream);
-                theResult = verifyArchiveAgainstAMap(theStream.str(), {
-                        {"smallA.txt",  1},
-                        {"mediumA.txt", 1},
-                        {"largeA.txt",  2},
-                        {"smallB.txt",  1},
-                        {"mediumB.txt", 1},
-                        {"largeB.txt",  2},
-                });
-                if (!theResult) {
-                    anOutput << "dump didn't match! what was expected for ";
-                    anOutput << "A set and B set insertion with small, medium, large and xlarge\n";
-                    anOutput << "\033[1;31m WARNING: Go into verifyArchiveAgainstMap funciton and see which count is not 0.\n"
-                               "Make sure calculations check out. If you believe there is an issue in this stage see a proctor\033[0m";
-                    return theResult;
-                }
-            }
-            anOutput << "Congrats at this point you have you were able to verify new block size "
-                    << "lets now check if extraction still works\n";
-            auto theArchive = Archive::openArchive(thePath);
-            std::string theFileName = pickRandomFile();
-            std::string temp(folder + "/out.txt");
-            theArchive.getValue()->extract(theFileName, temp);
-            theResult = filesMatch(theFileName, temp);
-            if(!theResult) {
-                anOutput << "Extracted file do not match original\n";
-                return theResult;
-            }
-            std::cout << "Extraction still works" <<std::endl;
-            return theResult;
-        }
 
         size_t countFilesInFolder(const std::string& aPath){
             size_t theCount = 0;

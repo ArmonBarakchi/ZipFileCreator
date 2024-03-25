@@ -1,5 +1,5 @@
 //
-// Created by Armon Barakchi on 3/7/24.
+// Created on 3/7/24.
 //
 
 #ifndef ECE141_ARCHIVE_CHUNKER_H
@@ -16,7 +16,7 @@
 
 namespace ECE141 {
 
-    const size_t kBlockSize{2048};
+    const size_t kBlockSize{1024};
     struct Block;
     struct __attribute__((packed)) MetaData { //51 bytes currently
         char FileName[16];
@@ -49,13 +49,13 @@ namespace ECE141 {
 
         size_t getSize() const {
             auto curr = input.tellg();
-            input.seekg(0, std::ios::end); //end of the stream
+            input.seekg(0, std::ios::end);
             auto ret = input.tellg();
             input.seekg(curr, std::ios::beg);
             return ret;
         }
 
-        size_t chunkCount() const { //how many chunks for given stream?
+        size_t chunkCount() const {
             auto theSize=getSize();
             return (theSize/kDataSize)+(theSize % kDataSize ? 1: 0);
         }
