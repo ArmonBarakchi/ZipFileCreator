@@ -14,7 +14,7 @@
 
 
 
-namespace ECE141 {
+namespace ZipFileCreator {
 
     const size_t kBlockSize{1024};
     struct Block;

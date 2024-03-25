@@ -23,7 +23,7 @@
 
 namespace fs = std::filesystem;
 
-namespace ECE141 {
+namespace ZipFileCreator {
 
     const size_t kMinBlockSize{1024};
     static std::string kSubFolder{"/sub"};

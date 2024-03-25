@@ -1,62 +1,145 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/aTyhvTsR)
-# WI24-Final
-
-Further expanding the archive project.
-
-### Due Mar 21, 2023 at 6:00pm (PST)
 
 ## Introduction
 
-Welcome to your ECE 141A Final! Don't stress (at least not too much) as this will be a fun one!
-This should feel like a PA except shorter -- you can even consider this to be part 3 of the Archive
-project.
+This is an Archival storage system. 
+An archive file is a single file that contains other files, much like a folder on your 
+hard drive contains other files. If you've used .archive or .zip files before, you get the idea. 
+The documents stored are not changed in any way. When the user extracts a 
+stored document, it is restored as an exact copy of the original. A file may be chosen to either
+be compressed or not compressed through the IDataProcessor interface, which offers a compression class.
+In the future, other types of IDataProcessors can be added.
 
-This final is closed notes, but you are allowed to use https://devdocs.io/cpp/.
-
-Please, grab your existing Archive code and use it for this final. Be sure **NOT** to replace the new
-`Testing.hpp`, `main.cpp`, and `CMakeLists.txt`, as we have added new functionality to these files.
-
-To make sure your code correctly compiles, be sure to do the following:
-
-1. Update the new `CMakeLists.txt` with any additional C++ header files that you may have added.
-2. Update the `getLocalFolder()` function in `main.cpp`.
-3. If you're a Windows user that had issues with Zlib, don't worry, it is not used in this final.
-
-### Overview
-For this final, we will be asking you to expand your Archive project in 3 ways:
-1. Increase the block/chunk size from 1024 to 2048 bytes.
-2. Create a method to merge multiple archives into a singular archive.
-3. Allow the archive to not just store files, but also folders/directories.
-
-We have tried to order these in increasing difficulty, but feel free to do these in any order!
 
 ## Specifics
 
-Below, we have created 3 challenges based on your existing Archive codebase. If possible, implement each of the following challenges. If you can't fully implement one, a good design strategy is still worth considerable points.  Document the design you would create to solve the challenge, and save it in a file called "design.txt".
+Below, I will explain each interfaceable function of the Archive class. There are other primitives in this class
+which will not be explained in this README
 
-## Challenge #1 - Increasing the block/chunk size.
 
-NOTE TO EMIN: Perhaps we should limit the sizes to 1024 and 2048, or maybe 3072?
+### Creating an Archive Storage File
+Before a user can work with an __archive__ file, it must be created. This action creates a new (empty) archive file in
+a standard location, ready to be used by the `Archive` tool.  Archive files use the ".arc" file extension.
+So an archive file called "test" will actually have the name "test.arc".
 
-In this challenge, your task is to modify the create archive method to use a variable block size. Up until now you have
-been using the default block size of 1024 bytes. Now the block size will be a parameter to the `create` method. You should
-also update the `Archive` class to store the block size as a member variable and persist it to the archive file so that
-it can be read back in when the archive is opened.
+To create a new archive storage file, the user will call the static method, `Archive::create`, along with the desired
+filename. If this file already exists, it will be automatically truncated (emptied of all content and length set to
+zero); otherwise the new (empty) file is created. This `Archive` object will already
+have access with the opened associated binary file stream. If the file cannot be created, the `Archive::create` method
+will return a `nullptr`.
 
-Here is how the updated `create` method should look:
-```cpp
-class Archive {
-  ...
-  ArchiveStatus<bool> create(const std::string &aPath, uint32_t aBlockSize);
-};
+```
+static ArchiveStatus<std::shared_ptr<Archive>> createArchive(const std::string &anArchiveName, uint32_t aBlockSize=1024);
 ```
 
-The test for this will create an archive with block size 2048 add our usual set of files to it and then dump the contents
-to make sure correct number of blocks are outputted.
+The argument `anArchiveName` is saved to the tmp folder with a ".arc" extension. `aBlockSize` is used
+to determine how big the data load is for each block in the Archive.
+
+### Opening a Pre-existing Archive Storage File
+Presuming that an existing __archive__ file already exists on disk, the user may choose to open that file for use.
+To open an __archive__ file, a user will call the static method, `Archive::open`, and pass the name of the file to be
+opened. Presuming that it's a legitimate __archive__ file, a new `Archive` object is returned, with the associated file
+opened and ready for use.  If the file doesn't exist (or isn't a real archive file) -- the `Archive::open` method will
+return a `nullptr`.
+
+```
+static ArchiveStatus<std::shared_ptr<Archive>> openArchive(const std::string &anArchiveName);
+```
+
+The argument `anArchiveName` must be the name of an Archive in the tmp directory used for this project
+
+### Archive Tool Commands
+
+#### __Add__ file to Archive
+Assuming an open archive file (new or pre-existing), the user can add a new document to the archive by calling the
+`Archive::add` method. The signature for this method is given below:
+
+```
+ArchiveStatus<bool> add(const std::string &aFilename, IDataProcessor* aProcessor=nullptr);
+```
+
+The `aFilename` will contain the complete path (path+name) of a file to be added to the stream.  For example:
+"/tmp/small.txt".   The `Archive::add` method will copy the contents of the given file into a series of 1..n
+blocks within the archive itself. The document will be associated in the archive with the filename portion of
+the given full-path, so that it may be retrieved (extracted) or removed in the future. If everything goes works,
+this function call will return `True`.  For example, if `aFilename` is "/tmp/small.txt", the name stored for
+the document is "small.txt" (excludes the path portion).
+
+The `IDataProcessor` is a pointer to a pre-process that can be ran on the file before being added. The specific processor
+for each file will be remembered and the reverse process will be ran before extraction. 
+
+#### __Extract__ file from Archive
+Assuming an open archive file (new or pre-existing), the user can extract a named resource inside the archive file.
+When the user calls this message and passes a document name, the archive will be searched for that file. If the
+file exists in the archive, the contents of the file will be written from the storage blocks to a file at the
+given `aFullOutputPath`, and return `True`. If the named resource does not exist, `Archive::extract()` will stop and return
+`False`.
 
 
-## Challenge #2 - Merging Archives
-In this challenge, your task is to merge the contents of one archive into another. You will add a new method to your `Archive` class:
+```
+bool extract(std::string &aName, const std::string &aFullOutputPath);
+```
+
+#### __Remove__ file from Archive
+Assuming an open archive file (new or pre-existing), the user can __remove__ a named resource inside the archive file.
+When the user calls this message and passes a document name, the archive will be searched for that file. If the
+file exists in the archive, the named file will be removed from the archive. Generally, this means that any internal
+block occupied by the document will be marked as "available" for reuse in a subsequent write operation in the archive.
+If this succeeds, `True` is returned. If the document name is not found in the archive, `False` is returned to the caller.
+
+```
+bool remove(std::string &aName);
+```
+
+#### __List__ files in Archive
+Assuming an open archive file (new or pre-existing), the user can __list__ all the names of the documents stored inside
+the archive file. When the user calls this message, all the documents stored internally will be located, and printed
+ to the given `std::ostream` object. The number of files in the Archive is returned. Sample output format documents
+in the archive is given below:
+
+```
+###  name         size       
+---------------------------
+1.   document1    203,400   
+2.   document2    2,150     
+```
+
+Here is the __list__ method call:
+```
+size_t list(std::ostream &aStream);
+```
+
+#### __Dump__ archive blocks (debug mode)
+Assuming an open archive file (new or pre-existing), the user can __dump__ information about the sequence of blocks
+stored inside the archive file. When the user calls this message, the blocks are iteratd (sequentially from first to last),
+and meta information is printed about the block to the given `std::ostream` object. When the function is finished, the number
+of blocks in the archive is returned. Sample output of the dump is given below:
+
+```
+###  status   name    
+-----------------------
+1.   empty    
+2.   used     test.txt
+3.   used     test.txt
+4.   empty
+```
+
+Here is the __dump__ method call:
+```
+size_t debugDump(std::ostream anOutputStream);
+```
+
+
+#### __Compact__ archive file
+This method will result in the archive file removing empty blocks. 
+Once complete, the archive file will contain 0 empty blocks, and every block will contain data from an archived document.
+This method returns the total number of blocks in the given archive file.
+
+```
+ArchiveStatus<size_t> compact();
+```
+
+
+#### Merging Archives
 
 ```cpp
 class Archive {
@@ -65,21 +148,15 @@ class Archive {
 };
 ```
 
-When called, you will open the other archive (from given path). Next, iterate all the files in the other archive, and copy each file into the current archive. The "other" archive will not be changed in this process.  Make sure to save all the changes to your current archive.
+This function will open the other archive, iterate all the files in the other archive, and copy each file into the current archive/
+The other archive is not changed in the process. 
 
-NOTE: Don't overthink this challenge!  You probably have most of the code you need to do this already. Think about how streams might make this task simpler.
+### Storing and Retrieving folders/directories
 
-## Challenge #3 - Storing and Retrieving folders/directories
+The archive file system supports adding and extracting folders, not just individual files 
 
-For this part of the assignment, you will be updating your Archive class to support the adding
-of entire folders (not just individual files)! There are two halves to this part:
+#### Adding Folders
 
-1. Implementing the `addFolder(...)` method.
-2. Implementing the `extractFolder(...)` method.
-
-### Adding Folders
-
-Go ahead and add this new method to your Archive class:
 
 ```cpp
 class Archive {
@@ -88,14 +165,12 @@ class Archive {
 }
 ```
 
-The argument, `aFolder`, will contain the path to the folder we want you to add.
-Your job is to add every file within this folder to your Archive. In addition, you
-will need to store which folder each of these files belong to.  Note: the folder you're asked to store only contains files, and no other sub-folders. This can simplify your work.
+The argument, `aFolder`, will contain the path to the folder to be added.
+Every file within this folder is added to the Archive. In addition, the folder to which
+each file is associated with is saved.  Note: the folder cannot contain subfolders
 
-To help you complete this task, we provide a handy `ScanFolder` utility class,
-which you can use to iterate through all the files in a folder.
-Here is an example of how it can be used:
 
+Iteration of files in folder is done using this ScanFolder Class
 ```cpp
 ECE141::ScanFolder theScan(aFolder);
 theScan.each([](const fs::directory_entry &anEntry) {
@@ -113,30 +188,10 @@ This lambda function will be called for every item (whether that be a file or a 
 the folder. This lambda function should also return a `bool`, where `true` tells the
 `ScanFolder` to keep iterating, and `false` tells it to stop.
 
-So for example, imagine we have the following files:
-```
-tmp/sub/largeA.txt
-tmp/sub/smallA.txt
-```
 
-If `addFolder("tmp/sub/")` gets called, then our Archive should add both `largeA.txt`
-and `smallA.txt`. In addition, the Archive should remember that these two files were within
-the `"sub"` folder. You will see why this is important in the `extractFolder()` method.
 
-So when I run the Archive's `list()` method, I should see the following:
+#### Extracting Folders
 
-```
-##      name             size       date added
---------------------------------------------------
-1       sub/largeA.txt   2678       2024-03-15 10:15:00
-2       sub/smallB.txt   906        2024-03-15 10:15:00
-```
-
-### Extracting Folders
-
-Now that we can add folders, let's now add the ability to extract them.
-
-Go ahead and add this new method to your Archive class:
 
 ```cpp
 class Archive {
@@ -145,33 +200,49 @@ class Archive {
 }
 ```
 
-This method has two arguments:
+Arguments:
 1. `aFolderName`: The name of the folder which contained the files we want to extract.
 2. `anExtractPath`: This specifies a folder where the extracted files should go.
 
-Going off the previous example where we added the `"sub"` folder to our Archive, we can call
-`extractFolder("sub", "output_folder/");`. This will take all the files we previously added
-to our archive (from the `"sub"` folder) and extract them into the `"output_folder/"` folder.
+Example Usage: If we added the `"sub"` folder to our Archive, we can call
+`extractFolder("sub", "output_folder/");`. This will take all the files previously added
+to the archive (from the `"sub"` folder) and extract them into the `"output_folder/"` folder.
 
-So after this method has been executed, we should see the following files:
+
+### Miscellaneous
+
+#### Data Processing Interface
+The IDataProcessor interface represents a fundamental architectural enhancement of the archival system. It provides a blueprint for data processing capabilities, enabling the system to execute sophisticated operations on data both before archival and upon retrieval. Implementations of this interface may include a variety of data transformations, ensuring adaptability and extensibility to meet future requirements.
+
+- Process: A method designed for processing data prior to archival. This includes operations such as validation, encoding, or preparation for compression, facilitating a versatile preparation phase.
+- ReverseProcess: A method aimed at reverting processed data back to its original state during extraction. This crucial feature ensures that the integrity of the data is preserved, allowing documents to be restored to their exact pre-archival state.
+
+I have implemented a simple compression processor as an example for how this IDataProcessor base class can be used 
+to expand the functionality of the Archive class.
+
+#### Status Management with ArchiveStatus
+The ArchiveStatus template class is instrumental in managing the operational status of actions performed within the archival system. It offers a unified approach to handling both successful outcomes and errors, providing clear and concise feedback mechanisms for the system's operations.
+
+- Success Case: For operations like adding, extracting, or processing documents that are completed successfully, ArchiveStatus encapsulates the result. This encapsulation allows the system to confidently proceed with subsequent tasks.
+
+- Error Case: In instances where operations face issues, ArchiveStatus identifies and captures the specific error encountered. This enables appropriate responses, such as error logging, user notification, or corrective actions, thus ensuring the system’s stability and reliability.
+
+#### Robust Error Handling
+To enhance the system's robustness, an enum class of potential errors (ArchiveErrors) has been defined. This enum class addresses a broad range of potential system issues,
+from file access errors to data integrity concerns. Through explicit error handling, the system's resilience and reliability are significantly improved,
+ensuring that users are well-informed about the state of the system and any encountered issues. Proper implementation of this error handling mechanism is under work.
+
+### A Note About Storage Files
+The storage system will read/write archive files as sequence of fixed size blocks. Archive
+files will be opened in binary mode using C++ filestreams.
+
+Each block in the storage system will be exactly 1024 (1K) in size. Ideally, the amount of meta data per block should be limited.
+Although this is not the most efficient solution for meta data usage, it simplifies the implementation to be more digestible.
+
 ```
-output_folder/largeA.txt
-output_folder/smallA.txt
+[BLOCK
+  [ meta area - 51 bytes]
+  [ data payload -- 973 bytes..............................................]
+]  
 ```
 
-## Testing
-Just like in all the PA's, we provide automated tests to grade and validate your solutions.
-
-### Grading Rubric
-Your solution will be graded using the following rubric:
-
-1. Compile test -- 10%
-2. Larger block size test -- 30%
-3. Combining archives test -- 30%
-4. Add folder test -- 30%
-
-## Submitting your work
-
-Due Mar 17, 2023 at 6:00pm (PST).
-
-Make sure to turn in your code, and update the associated `student.json` file.

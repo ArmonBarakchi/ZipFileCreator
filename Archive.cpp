@@ -7,7 +7,7 @@
 
 #include "Archive.hpp"
 
-namespace ECE141 {
+namespace ZipFileCreator {
 
     std::vector<std::shared_ptr<IDataProcessor>> Archive::processors;
 
@@ -71,14 +71,14 @@ namespace ECE141 {
 
         //process file if there is a processor
         uint8_t processorPosition;
-        std::unique_ptr<ECE141::Chunker> theChunker;
+        std::unique_ptr<ZipFileCreator::Chunker> theChunker;
         if (aProcessor) {
 
             processorPosition = processAnInput(aProcessor, theInput, theProcessedInput, aFilename);
-            theChunker = std::make_unique<ECE141::Chunker>(theProcessedInput, aBlockSize);
+            theChunker = std::make_unique<ZipFileCreator::Chunker>(theProcessedInput, aBlockSize);
 
         } else {
-            theChunker = std::make_unique<ECE141::Chunker>(theInput, aBlockSize);
+            theChunker = std::make_unique<ZipFileCreator::Chunker>(theInput, aBlockSize);
         }
 
         //find open blocks in archive
@@ -86,7 +86,7 @@ namespace ECE141 {
         getFreeBlocks(theChunker->chunkCount(), theOpenPlaces);
 
         //write file to open blocks
-        theChunker->each([&](ECE141::Block &aBlock, size_t aPartNum) {
+        theChunker->each([&](ZipFileCreator::Block &aBlock, size_t aPartNum) {
 
             int j;
             for (int i = 0; i < theFolderName.size(); i++) {
@@ -273,7 +273,7 @@ namespace ECE141 {
     }
 
     ArchiveStatus<bool> Archive:: addFolder(const std::string &aFolder){
-        ECE141::ScanFolder theScan(aFolder);
+        ZipFileCreator::ScanFolder theScan(aFolder);
         theScan.each([this](const fs::directory_entry &anEntry) {
             if(anEntry.is_regular_file()) {
                 this->add(anEntry.path());
@@ -410,7 +410,7 @@ namespace ECE141 {
 
     //--------------Compression-------------------------
 
-    std::vector<uint8_t> ECE141::Compression::process(const std::vector<uint8_t> &input) {
+    std::vector<uint8_t> ZipFileCreator::Compression::process(const std::vector<uint8_t> &input) {
 
         uLong compressedSize = compressBound(input.size());
         std::vector<uint8_t> compressedData(compressedSize);
@@ -427,7 +427,7 @@ namespace ECE141 {
     }
 
     size_t const WorstCaseUncompressionSize{8};
-    std::vector<uint8_t> ECE141::Compression::reverseProcess(const std::vector<uint8_t> &input) {
+    std::vector<uint8_t> ZipFileCreator::Compression::reverseProcess(const std::vector<uint8_t> &input) {
 
         // Determine the maximum size of the uncompressed data based on the compressed data size
         size_t uncompressedSize = static_cast<size_t>(input.size()) * WorstCaseUncompressionSize;

@@ -13,7 +13,7 @@
 
 namespace fs = std::filesystem;
 
-namespace ECE141 {
+namespace ZipFileCreator {
 
 /*
   fs::directory_entry methods:

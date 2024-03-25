@@ -26,7 +26,7 @@ void runAutoGrader(int argc, const char* argv[]) {
     std::string theFolder(getLocalFolder());
     if (3 == argc)
         theFolder = argv[2];
-    ECE141::Testing theTester(theFolder);
+    ZipFileCreator::Testing theTester(theFolder);
 
     using TestCall = std::function<bool()>;
     static std::map<std::string, TestCall> theCalls{

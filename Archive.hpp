@@ -27,7 +27,7 @@
 #include <cstring>
 #include "ScanFolder.hpp"
 
-namespace ECE141 {
+namespace ZipFileCreator {
 
     enum class ActionType {added, extracted, removed, listed, dumped, compacted};
     namespace fs = std::filesystem;
